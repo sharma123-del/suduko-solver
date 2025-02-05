@@ -1,0 +1,153 @@
+#include <iostream>
+#include <SFML/Graphics.hpp>
+
+#define N 9 // Sudoku grid size (9x9)
+
+// Function to print the Sudoku board
+void printBoard(int board[N][N]) {
+    for (int r = 0; r < N; r++) {
+        for (int c = 0; c < N; c++) {
+            std::cout << board[r][c] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+// Function to check if placing a number at (row, col) is valid
+bool isValid(int board[N][N], int row, int col, int num) {
+    // Check if the number is already in the row
+    for (int x = 0; x < N; x++) {
+        if (board[row][x] == num) return false;
+    }
+
+    // Check if the number is already in the column
+    for (int x = 0; x < N; x++) {
+        if (board[x][col] == num) return false;
+    }
+
+    // Check the 3x3 grid
+    int startRow = row - row % 3, startCol = col - col % 3;
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 3; c++) {
+            if (board[r + startRow][c + startCol] == num) return false;
+        }
+    }
+
+    return true;
+}
+
+// Backtracking algorithm to solve the Sudoku puzzle
+bool solveSudoku(int board[N][N]) {
+    int row, col;
+
+    // Check if there is any empty cell (denoted by 0)
+    bool empty = true;
+    for (row = 0; row < N; row++) {
+        for (col = 0; col < N; col++) {
+            if (board[row][col] == 0) {
+                empty = false;
+                break;
+            }
+        }
+        if (!empty) break;
+    }
+
+    // If no empty cells left, we have solved the puzzle
+    if (empty) return true;
+
+    // Try placing numbers from 1 to 9 in the empty cell
+    for (int num = 1; num <= 9; num++) {
+        if (isValid(board, row, col, num)) {
+            board[row][col] = num;
+
+            // Recursively solve the rest of the board
+            if (solveSudoku(board)) {
+                return true;
+            }
+
+            // If placing num doesn't lead to a solution, reset the cell
+            board[row][col] = 0;
+        }
+    }
+
+    // If no number works, return false to backtrack
+    return false;
+}
+
+// Function to create and display the GUI for Sudoku using SFML
+void displaySudokuBoard(int board[N][N]) {
+    sf::RenderWindow window(sf::VideoMode(600, 600), "Sudoku Solver");
+
+    sf::Font font;
+    if (!font.loadFromFile("arial.ttf")) {
+        std::cerr << "Error loading font!" << std::endl;
+        return;
+    }
+
+    // Set up graphical grid lines
+    sf::VertexArray grid(sf::Lines, 2 * (N + 1));
+    for (int i = 0; i <= N; i++) {
+        grid.append(sf::Vertex(sf::Vector2f(i * 60.0f, 0), sf::Color::Black));
+        grid.append(sf::Vertex(sf::Vector2f(i * 60.0f, 600), sf::Color::Black));
+        grid.append(sf::Vertex(sf::Vector2f(0, i * 60.0f), sf::Color::Black));
+        grid.append(sf::Vertex(sf::Vector2f(600, i * 60.0f), sf::Color::Black));
+    }
+
+    // Main rendering loop
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                window.close();
+        }
+
+        window.clear(sf::Color::White);
+
+        // Draw the grid
+        window.draw(grid);
+
+        // Draw the numbers in the Sudoku board
+        sf::Text text;
+        text.setFont(font);
+        text.setCharacterSize(30);
+        text.setFillColor(sf::Color::Black);
+
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (board[i][j] != 0) {
+                    text.setString(std::to_string(board[i][j]));
+                    text.setPosition(j * 60 + 20, i * 60 + 15);
+                    window.draw(text);
+                }
+            }
+        }
+
+        window.display();
+    }
+}
+
+int main() {
+    int board[N][N] = {
+        {5, 3, 0, 0, 7, 0, 0, 0, 0},
+        {6, 0, 0, 1, 9, 5, 0, 0, 0},
+        {0, 9, 8, 0, 0, 0, 0, 6, 0},
+        {8, 0, 0, 0, 6, 0, 0, 0, 3},
+        {4, 0, 0, 8, 0, 3, 0, 0, 1},
+        {7, 0, 0, 0, 2, 0, 0, 0, 6},
+        {0, 6, 0, 0, 0, 0, 2, 8, 0},
+        {0, 0, 0, 4, 1, 9, 0, 0, 5},
+        {0, 0, 0, 0, 8, 0, 0, 7, 9}
+    };
+
+    std::cout << "Solving Sudoku..." << std::endl;
+    if (solveSudoku(board)) {
+        std::cout << "Sudoku Solved!" << std::endl;
+        printBoard(board);  // Display solved Sudoku in the console
+    } else {
+        std::cout << "No solution exists!" << std::endl;
+    }
+
+    displaySudokuBoard(board); // Display Sudoku in a GUI
+
+    return 0;
+}
